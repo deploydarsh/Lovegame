@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Love Game Arena 💘</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FFF7EA; --honey:#F5A623; --honey-deep:#C97C1F; --caramel:#8A5A2B;
+    --brown:#4A2E18; --rose:#FF7FA0; --rose-deep:#FF5C82; --rose-soft:#FFE1E8;
+    --line: rgba(138,90,43,0.16); --shadow: rgba(122,78,20,0.22);
+    --ok:#7FBF7A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Quicksand', sans-serif; color:var(--brown); overflow:hidden; position:relative;
+    background:
+      radial-gradient(circle at 15% 10%, #FFEFCB 0%, transparent 45%),
+      radial-gradient(circle at 85% 85%, #FFE0E8 0%, transparent 45%),
+      var(--cream);
+  }
+  .comb-bg{
+    position:fixed; inset:0; z-index:0; opacity:0.10; pointer-events:none;
+    background-image: radial-gradient(circle, transparent 22px, var(--honey-deep) 23px, transparent 24px);
+    background-size: 64px 110px; background-position: 0 0, 32px 55px;
+  }
+  .floaters{ position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
+  .floater{ position:absolute; bottom:-60px; opacity:0.85; animation: rise linear infinite; }
+  @keyframes rise{
+    0%{ transform: translateY(0) rotate(0deg); opacity:0; }
+    10%{ opacity:0.85; }
+    100%{ transform: translateY(-112vh) rotate(360deg); opacity:0; }
+  }
+
+  .dots{ position:fixed; top:18px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:6; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:rgba(201,124,31,0.25); transition:background .3s; }
+  .dot.on{ background: var(--honey-deep); }
+
+  .stage{ position:relative; z-index:2; height:100vh; width:100vw; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .page{
+    display:none; width:100%; max-width:560px;
+    background: rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.85);
+    border-radius:26px; padding:38px 30px 30px; text-align:center;
+    box-shadow:0 24px 60px var(--shadow); backdrop-filter: blur(8px);
+    max-height:88vh; overflow-y:auto;
+  }
+  .page.active{ display:block; animation: enter .5s cubic-bezier(.2,.9,.25,1) both; }
+  @keyframes enter{ from{opacity:0; transform:translateY(22px) scale(.97);} to{opacity:1; transform:translateY(0) scale(1);} }
+
+  .eyebrow{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:12px; letter-spacing:3px; text-transform:uppercase; color:var(--rose); margin-bottom:10px; }
+  h1{ font-family:'Fraunces',serif; font-weight:600; font-size:30px; color:var(--honey-deep); margin-bottom:8px; line-height:1.2; }
+  .script{ font-family:'Caveat',cursive; font-size:24px; color:var(--rose); display:block; margin:2px 0 14px; }
+  p.body-text{ font-size:15.5px; line-height:1.65; margin-bottom:8px; }
+
+  .btn{
+    font-family:'Quicksand',sans-serif; font-weight:700; font-size:15px; border:none; border-radius:999px;
+    padding:12px 28px; background:linear-gradient(135deg, var(--honey), var(--honey-deep)); color:#fff;
+    cursor:pointer; box-shadow:0 10px 22px rgba(201,124,31,0.38);
+    transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease; margin-top:12px;
+  }
+  .btn:hover{ transform:translateY(-2px) scale(1.03); }
+  .btn:active{ transform:translateY(0) scale(.97); }
+  .btn.secondary{ background:linear-gradient(135deg, var(--rose), var(--rose-deep)); box-shadow:0 10px 22px rgba(255,92,130,.35); }
+  .btn[disabled]{ opacity:.45; cursor:not-allowed; box-shadow:none; }
+  .btn.small{ padding:9px 18px; font-size:13px; }
+
+  .score-tag{
+    display:inline-block; font-family:'Quicksand',sans-serif; font-weight:700; font-size:13px;
+    background:rgba(255,255,255,.7); border:1.5px solid var(--line); color:var(--caramel);
+    padding:6px 14px; border-radius:999px; margin:6px 0 4px;
+  }
+
+  .result-box{
+    margin-top:16px; padding:16px; border-radius:16px; background:rgba(255,255,255,.55);
+    border:1.5px dashed var(--line); display:none;
+  }
+  .result-box.show{ display:block; animation: fadeUp .5s ease both; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+  .result-line{ font-family:'Caveat',cursive; font-size:22px; color:var(--rose-deep); }
+
+  /* --- game 1: catch hearts --- */
+  #g1Area{ position:relative; height:230px; background:linear-gradient(180deg,#FFF1D6,#FFE7EF); border-radius:18px; overflow:hidden; margin:14px 0; border:1.5px solid var(--line); }
+  .falling{ position:absolute; top:-30px; font-size:26px; cursor:pointer; animation: dropfall linear forwards; user-select:none; }
+  @keyframes dropfall{ to{ transform: translateY(260px); } }
+
+  /* --- game 2: wheel --- */
+  .wheel-wrap{ position:relative; width:220px; height:220px; margin:16px auto; }
+  .wheel{
+    width:220px; height:220px; border-radius:50%;
+    background: conic-gradient(var(--honey) 0deg 90deg, var(--rose) 90deg 180deg, var(--honey-deep) 180deg 270deg, var(--rose-deep) 270deg 360deg);
+    border: 6px solid #fff; box-shadow: 0 12px 30px var(--shadow);
+    transition: transform 3.2s cubic-bezier(.15,.85,.15,1);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .wheel-center{ width:44px; height:44px; border-radius:50%; background:#fff; box-shadow:0 4px 10px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .pointer{ position:absolute; top:-4px; left:50%; transform:translateX(-50%); font-size:22px; z-index:3; }
+
+  /* --- game 3: memory --- */
+  .memgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:16px 0; max-width:320px; margin-left:auto; margin-right:auto; }
+  .card{
+    aspect-ratio:1; border-radius:14px; background:linear-gradient(135deg,var(--honey),var(--honey-deep));
+    display:flex; align-items:center; justify-content:center; font-size:26px; color:transparent;
+    cursor:pointer; transition: transform .35s ease, background .3s ease; user-select:none;
+  }
+  .card.flipped{ background:#fff; color:inherit; border:1.5px solid var(--line); }
+  .card.matched{ background:linear-gradient(135deg,#DFF2DB,#C8E8C2); color:inherit; border:1.5px solid var(--ok); cursor:default; }
+
+  /* --- game 4: bee chase --- */
+  #g4Area{ position:relative; height:230px; background:linear-gradient(180deg,#FFF1D6,#FFE7EF); border-radius:18px; overflow:hidden; margin:14px 0; border:1.5px solid var(--line); }
+  #bee{ position:absolute; font-size:30px; cursor:pointer; transition: left .32s ease, top .32s ease; user-select:none; }
+  .timerbar{ height:8px; border-radius:6px; background:rgba(138,90,43,0.15); overflow:hidden; margin-top:10px; }
+  .timerbar-fill{ height:100%; background:linear-gradient(90deg,var(--honey),var(--rose)); width:100%; }
+
+  /* --- final task --- */
+  .love-counter{ font-family:'Fraunces',serif; font-size:44px; color:var(--rose-deep); margin:6px 0; }
+  .love-line{ font-family:'Caveat',cursive; font-size:22px; color:var(--caramel); min-height:30px; margin-bottom:6px; }
+  .hug-box{
+    margin-top:16px; padding:14px; border-radius:16px; border:1.5px dashed var(--line);
+    background:rgba(255,255,255,.55);
+  }
+  .guilt-line{ display:none; font-family:'Caveat',cursive; font-size:20px; color:var(--rose-deep); margin-top:10px; }
+  .guilt-line.show{ display:block; animation: fadeUp .4s ease both; }
+
+  .stickers{ font-size:24px; margin:10px 0 4px; letter-spacing:8px; }
+  .from-tag{ margin-top:16px; font-family:'Caveat',cursive; font-size:20px; color:var(--rose); }
+  .confetti-piece{ position:absolute; top:-24px; font-size:20px; animation: fall linear forwards; z-index:8; }
+  @keyframes fall{ to{ transform: translateY(105vh) rotate(420deg); opacity:.15; } }
+
+  @media (max-width:480px){
+    h1{font-size:24px;} .script{font-size:20px;} .page{padding:28px 18px;}
+    .wheel,.wheel-wrap{ width:190px; height:190px;} .wheel{width:190px; height:190px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="comb-bg"></div>
+<div class="floaters" id="floaters"></div>
+<div class="dots" id="dots"></div>
+
+<div class="stage">
+
+  <!-- PAGE 1: INTRO -->
+  <div class="page active" data-page="1">
+    <div class="eyebrow">just for you, honey</div>
+    <div style="font-size:52px;">💘🍯🐝</div>
+    <h1>Love Game Arena</h1>
+    <span class="script">let's see if you can win my heart... again 😏</span>
+    <p class="body-text">Four tiny games. A few cute surprises. And one very important task waiting at the end.</p>
+    <p class="body-text">Ready, Honey?</p>
+    <button class="btn" onclick="goTo(2)">Let's Play →</button>
+  </div>
+
+  <!-- PAGE 2: GAME 1 - CATCH THE HEARTS -->
+  <div class="page" data-page="2">
+    <div class="eyebrow">game 1 of 4</div>
+    <h1>Catch the Hearts</h1>
+    <p class="body-text">Tap the hearts before they fall. Catch 8 and you win my heart (literally).</p>
+    <div class="score-tag" id="g1Score">Caught: 0 / 8 · Time: 15s</div>
+    <div id="g1Area"></div>
+    <button class="btn" id="g1Start" onclick="startGame1()">Start Catching 💕</button>
+    <div class="result-box" id="g1Result">
+      <div class="result-line" id="g1Line"></div>
+      <button class="btn secondary small" onclick="goTo(3)">Next Game →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 3: GAME 2 - SPIN THE WHEEL -->
+  <div class="page" data-page="3">
+    <div class="eyebrow">game 2 of 4</div>
+    <h1>Spin the Love Wheel</h1>
+    <p class="body-text">Spin it and see how much you're loved today. (Spoiler: it's a lot.)</p>
+    <div class="wheel-wrap">
+      <div class="pointer">🔻</div>
+      <div class="wheel" id="wheel"><div class="wheel-center">💗</div></div>
+    </div>
+    <button class="btn" id="g2Start" onclick="spinWheel()">Spin the Wheel 🎡</button>
+    <div class="result-box" id="g2Result">
+      <div class="result-line" id="g2Line"></div>
+      <button class="btn secondary small" onclick="goTo(4)">Next Game →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 4: GAME 3 - MEMORY MATCH -->
+  <div class="page" data-page="4">
+    <div class="eyebrow">game 3 of 4</div>
+    <h1>Memory of Us</h1>
+    <p class="body-text">Find all 3 matching pairs. Your memory game is clearly better than mine.</p>
+    <div class="score-tag" id="g3Score">Pairs found: 0 / 3</div>
+    <div class="memgrid" id="memGrid"></div>
+    <div class="result-box" id="g3Result">
+      <div class="result-line" id="g3Line"></div>
+      <button class="btn secondary small" onclick="goTo(5)">Next Game →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 5: GAME 4 - BEE CHASE -->
+  <div class="page" data-page="5">
+    <div class="eyebrow">game 4 of 4 · final round</div>
+    <h1>Catch the Bee</h1>
+    <p class="body-text">Quick, it's fast! Catch it 6 times in 6 seconds if you can 🐝</p>
+    <div class="score-tag" id="g4Score">Caught: 0 / 6</div>
+    <div id="g4Area"></div>
+    <div class="timerbar"><div class="timerbar-fill" id="g4Timer"></div></div>
+    <button class="btn" id="g4Start" onclick="startGame4()">Start Chase 🐝</button>
+    <div class="result-box" id="g4Result">
+      <div class="result-line" id="g4Line"></div>
+      <button class="btn secondary small" onclick="goTo(6)">One Last Thing →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 6: FINAL TASK -->
+  <div class="page" data-page="6">
+    <div class="eyebrow">the real final boss</div>
+    <h1>Your Task, Honey 💌</h1>
+    <p class="body-text">You made it through all 4 games. Now for the important part.</p>
+    <p class="body-text"><strong>Say "I Love You" 10 times.</strong> Tap the button. Mean it every time.</p>
+    <div class="love-counter" id="loveCount">0 / 10</div>
+    <div class="love-line" id="loveLine">tap below to begin 👇</div>
+    <button class="btn secondary" id="loveBtn" onclick="sayLove()">I Love You 💗</button>
+
+    <div class="hug-box">
+      <p class="body-text" style="margin-bottom:8px;">Also — claim your hug. It's mandatory.</p>
+      <button class="btn small" id="hugBtn" onclick="claimHug()">Claim Your Hug 🤗</button>
+    </div>
+
+    <div class="guilt-line" id="guiltLine">Wait... does this mean you don't love me? 😢 (kidding — but you know what to do 👀)</div>
+
+    <button class="btn" id="continueBtn" onclick="tryContinue()" style="margin-top:18px;">Continue →</button>
+  </div>
+
+  <!-- PAGE 7: CELEBRATION -->
+  <div class="page" data-page="7">
+    <div class="eyebrow">mission complete</div>
+    <h1>You Win. Officially. 🏆💗</h1>
+    <p class="body-text">10 I-love-yous, one hug, and four games later — you've officially won my heart. Again.</p>
+    <p class="body-text" style="font-style:italic; color:var(--rose-deep);">Not that it was ever in question, Honey. 🍯</p>
+    <div class="stickers">🎉 🧸 🍯 🌸 💌</div>
+    <div class="from-tag">with all my love — Darsh 💗</div>
+    <button class="btn" onclick="location.reload()">Play Again ↺</button>
+  </div>
+
+</div>
+
+<script>
+  const totalPages = 7;
+  for(let i=1;i<=totalPages;i++){
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===1 ? ' on':'');
+    d.id = 'dot-'+i;
+    document.getElementById('dots').appendChild(d);
+  }
+  function goTo(n){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelector('.page[data-page="'+n+'"]').classList.add('active');
+    for(let i=1;i<=totalPages;i++) document.getElementById('dot-'+i).classList.toggle('on', i===n);
+    if(n===7) launchConfetti();
+  }
+
+  // floating background stickers
+  const emojiSet = ['🍯','🐝','💗','🌸','🧸','✨','🌷'];
+  const floaters = document.getElementById('floaters');
+  for(let i=0;i<16;i++){
+    const s = document.createElement('span');
+    s.className='floater'; s.textContent = emojiSet[Math.floor(Math.random()*emojiSet.length)];
+    s.style.left = Math.random()*100+'vw';
+    s.style.animationDuration = (9+Math.random()*10)+'s';
+    s.style.animationDelay = (Math.random()*10)+'s';
+    s.style.fontSize = (16+Math.random()*20)+'px';
+    floaters.appendChild(s);
+  }
+
+  /* ================= GAME 1: CATCH THE HEARTS (designed to win) ================= */
+  let g1Caught = 0, g1Timer = 15, g1Interval, g1Spawner, g1Running=false;
+  const g1Emojis = ['💗','💕','💖','🍯'];
+  function startGame1(){
+    if(g1Running) return;
+    g1Running = true; g1Caught = 0; g1Timer = 15;
+    document.getElementById('g1Start').disabled = true;
+    document.getElementById('g1Score').textContent = 'Caught: 0 / 8 · Time: 15s';
+    const area = document.getElementById('g1Area'); area.innerHTML='';
+    g1Spawner = setInterval(()=>{
+      const el = document.createElement('span');
+      el.className='falling'; el.textContent = g1Emojis[Math.floor(Math.random()*g1Emojis.length)];
+      el.style.left = (Math.random()*85)+'%';
+      el.style.animationDuration = (2+Math.random()*1.2)+'s';
+      el.onclick = ()=>{ if(!g1Running) return; g1Caught++; el.remove(); updateG1(); if(g1Caught>=8) endGame1(true); };
+      area.appendChild(el);
+      setTimeout(()=>{ if(el.parentNode) el.remove(); }, 3400);
+    }, 650);
+    g1Interval = setInterval(()=>{
+      g1Timer--;
+      updateG1();
+      if(g1Timer<=0) endGame1(g1Caught>=8);
+    }, 1000);
+  }
+  function updateG1(){ document.getElementById('g1Score').textContent = 'Caught: '+g1Caught+' / 8 · Time: '+Math.max(g1Timer,0)+'s'; }
+  function endGame1(won){
+    g1Running=false; clearInterval(g1Interval); clearInterval(g1Spawner);
+    document.getElementById('g1Area').innerHTML='';
+    document.getElementById('g1Start').disabled = false;
+    document.getElementById('g1Start').textContent = 'Play Again 💕';
+    const line = won
+      ? "Look at you, catching hearts like you catch feelings. Smooth. 😌💕"
+      : "Close enough — you already caught the important one. Mine. 💗";
+    document.getElementById('g1Line').textContent = line;
+    document.getElementById('g1Result').classList.add('show');
+  }
+
+  /* ================= GAME 2: SPIN THE WHEEL (rigged win) ================= */
+  const wheelMessages = [
+    "The wheel says: 100% my favorite person 🎡💗",
+    "Result: officially the cutest human I know 🍯",
+    "You spun and landed on... certified soulmate status ✨",
+    "The wheel has spoken: undeniably loved 💕"
+  ];
+  let wheelSpun = false;
+  function spinWheel(){
+    if(wheelSpun) return;
+    wheelSpun = true;
+    const wheel = document.getElementById('wheel');
+    const extraSpins = 5 * 360;
+    const finalAngle = extraSpins + Math.floor(Math.random()*360);
+    wheel.style.transform = 'rotate('+finalAngle+'deg)';
+    document.getElementById('g2Start').disabled = true;
+    setTimeout(()=>{
+      const line = wheelMessages[Math.floor(Math.random()*wheelMessages.length)];
+      document.getElementById('g2Line').textContent = line;
+      document.getElementById('g2Result').classList.add('show');
+    }, 3300);
+  }
+
+  /* ================= GAME 3: MEMORY MATCH (always winnable) ================= */
+  const memEmojis = ['🍯','💗','🐝'];
+  let memDeck = [], memFlipped = [], memMatched = 0, memLock=false;
+  function buildMemory(){
+    memDeck = [...memEmojis, ...memEmojis].sort(()=>Math.random()-0.5);
+    memFlipped = []; memMatched = 0; memLock=false;
+    const grid = document.getElementById('memGrid'); grid.innerHTML='';
+    memDeck.forEach((val, idx)=>{
+      const c = document.createElement('div');
+      c.className='card'; c.dataset.val=val; c.dataset.idx=idx; c.textContent='';
+      c.onclick = ()=>flipCard(c);
+      grid.appendChild(c);
+    });
+    document.getElementById('g3Score').textContent = 'Pairs found: 0 / 3';
+  }
+  function flipCard(c){
+    if(memLock || c.classList.contains('flipped') || c.classList.contains('matched')) return;
+    c.classList.add('flipped'); c.textContent = c.dataset.val;
+    memFlipped.push(c);
+    if(memFlipped.length===2){
+      memLock = true;
+      setTimeout(()=>{
+        const [a,b] = memFlipped;
+        if(a.dataset.val === b.dataset.val){
+          a.classList.add('matched'); b.classList.add('matched');
+          memMatched++;
+          document.getElementById('g3Score').textContent = 'Pairs found: '+memMatched+' / 3';
+          if(memMatched===3) endGame3();
+        } else {
+          a.classList.remove('flipped'); a.textContent='';
+          b.classList.remove('flipped'); b.textContent='';
+        }
+        memFlipped = []; memLock = false;
+      }, 700);
+    }
+  }
+  function endGame3(){
+    document.getElementById('g3Line').textContent = "Look at that memory... almost as good as remembering our first date. 😉";
+    document.getElementById('g3Result').classList.add('show');
+  }
+  buildMemory();
+
+  /* ================= GAME 4: BEE CHASE (designed to be hard) ================= */
+  let g4Caught=0, g4TimeLeft=6000, g4Running=false, g4MoveTimer, g4CountdownTimer, g4StartTime;
+  function startGame4(){
+    if(g4Running) return;
+    g4Running = true; g4Caught = 0; g4TimeLeft = 6000; g4StartTime = Date.now();
+    document.getElementById('g4Start').disabled = true;
+    document.getElementById('g4Score').textContent = 'Caught: 0 / 6';
+    const area = document.getElementById('g4Area'); area.innerHTML='';
+    const bee = document.createElement('span');
+    bee.id='bee'; bee.textContent='🐝';
+    bee.style.left='10px'; bee.style.top='10px';
+    bee.onclick = ()=>{
+      if(!g4Running) return;
+      g4Caught++;
+      document.getElementById('g4Score').textContent = 'Caught: '+g4Caught+' / 6';
+      moveBee(bee, area);
+      if(g4Caught>=6) endGame4(true);
+    };
+    area.appendChild(bee);
+    moveBee(bee, area);
+    g4MoveTimer = setInterval(()=>{ if(g4Running) moveBee(bee, area); }, 550);
+    const fillEl = document.getElementById('g4Timer');
+    g4CountdownTimer = setInterval(()=>{
+      const elapsed = Date.now() - g4StartTime;
+      const remain = Math.max(g4TimeLeft - elapsed, 0);
+      fillEl.style.width = (remain / g4TimeLeft * 100)+'%';
+      if(remain<=0) endGame4(g4Caught>=6);
+    }, 100);
+  }
+  function moveBee(bee, area){
+    const maxX = area.clientWidth - 40;
+    const maxY = area.clientHeight - 40;
+    bee.style.left = (Math.random()*maxX)+'px';
+    bee.style.top = (Math.random()*maxY)+'px';
+  }
+  function endGame4(won){
+    g4Running = false;
+    clearInterval(g4MoveTimer); clearInterval(g4CountdownTimer);
+    document.getElementById('g4Area').innerHTML='';
+    document.getElementById('g4Start').disabled = false;
+    document.getElementById('g4Start').textContent = 'Try Again 🐝';
+    const line = won
+      ? "Whoa, fast hands. Okay, impressed. 😏🐝"
+      : "The bee got away... but don't worry, you already caught my heart ages ago. 💗";
+    document.getElementById('g4Line').textContent = line;
+    document.getElementById('g4Result').classList.add('show');
+  }
+
+  /* ================= FINAL TASK ================= */
+  const loveLines = [
+    "Aww, say it again 🥹",
+    "Okay that one felt real 💗",
+    "Keep going, I'm not tired of hearing it",
+    "My heart just skipped a beat",
+    "Halfway there, don't stop now",
+    "You're making me blush, ngl",
+    "This is officially my favorite sound",
+    "Almost there, Honey",
+    "One more... I promise it's worth it",
+    "There it is. #10. Certified love. ✅"
+  ];
+  let loveCount = 0, hugClaimed = false;
+  function sayLove(){
+    if(loveCount>=10) return;
+    loveCount++;
+    document.getElementById('loveCount').textContent = loveCount+' / 10';
+    document.getElementById('loveLine').textContent = loveLines[loveCount-1];
+    if(loveCount>=10){
+      document.getElementById('loveBtn').disabled = true;
+      document.getElementById('loveBtn').textContent = 'Task Complete 💗';
+    }
+  }
+  function claimHug(){
+    hugClaimed = true;
+    document.getElementById('hugBtn').textContent = 'Hug Delivered ✅';
+    document.getElementById('hugBtn').disabled = true;
+  }
+  function tryContinue(){
+    if(loveCount>=10 && hugClaimed){
+      document.getElementById('guiltLine').classList.remove('show');
+      goTo(7);
+    } else {
+      document.getElementById('guiltLine').classList.add('show');
+    }
+  }
+
+  /* ================= CONFETTI ================= */
+  function launchConfetti(){
+    const pieces = ['🍯','💗','🎉','🌸','🐝','✨'];
+    for(let i=0;i<28;i++){
+      const c = document.createElement('span');
+      c.className='confetti-piece'; c.textContent = pieces[Math.floor(Math.random()*pieces.length)];
+      c.style.left = Math.random()*100+'vw';
+      c.style.animationDuration = (2.6+Math.random()*2)+'s';
+      c.style.fontSize = (14+Math.random()*14)+'px';
+      document.body.appendChild(c);
+      setTimeout(()=>c.remove(), 5200);
+    }
+  }
+</script>
+
+</body>
+</html>
